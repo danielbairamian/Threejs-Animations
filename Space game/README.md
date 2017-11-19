@@ -3,4 +3,4 @@
 
 Simple space game where the user is a planet going through meteors. The user's score increases when he/she collects the colored ball. If a collision with a meteor happens, the score is reset to 0. The higher the score, the faster the meteors become.
 
-![]([C:/animation gifs/source.mp4)
+![](C:/animation gifs/source.mp4)
