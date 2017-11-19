@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset=utf-8>
+		<title>Hand</title>
+		<style>
+			body { margin: 0}
+			canvas { width: 100%; height: 100% ; background-color: #ffffff}
+		</style>
+	</head>
+	<body>
+
+		<script src="threejs/three.js-master/build/three.js"></script>
+    <script src="threejs/three.js-master/examples/js/controls/TrackballControls.js"></script>
+		<script src="dat.gui.min.js"></script>
+
+		<script>
+			var flag = 0;
+			var camera, scene, renderer;
+			var mesh;
+      var bonesIndex = [];
+			var bonesMiddle = [];
+			var bonesRing = [];
+			var bonesPinky = [];
+			var bonesThumb = [];
+      var heightSegment = 15;
+			var skeletonHelper;
+			var index, ring, pinky, middle, thumb;
+			var palm;
+			var skeletonIndex, skeletonRing, skeletonMiddle, skeletonThumb, skeletonPinky;
+			var guiControls;
+
+			init();
+			animate();
+
+			function init() {
+
+				camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 2000 );
+				camera.position.z = 400;
+
+				scene = new THREE.Scene();
+
+				var ambientLight = new THREE.AmbientLight(0xffffff , 0.87);
+				scene.add(ambientLight);
+
+				var lightRed = new THREE.PointLight( 0xffffff, 0.74, 70 );
+				lightRed.position.set( 0, 0, 80 );
+				lightRed.intensity = 2;
+				scene.add( lightRed );
+
+				var lightBlue = new THREE.PointLight( 0xffffff, 0.4, 100 );
+				lightBlue.position.set( 0, 0, -50 );
+				scene.add( lightBlue );
+
+				guiControls = new function(){
+					this.IndexPhalanxOneRotation = 0;
+					this.IndexPhalanxTwoRotation = 0;
+					this.IndexPhalanxThreeRotation = 0;
+
+					this.MiddlePhalanxOneRotation = 0;
+					this.MiddlePhalanxTwoRotation = 0;
+					this.MiddlePhalanxThreeRotation = 0;
+
+					this.RingPhalanxOneRotation = 0;
+					this.RingPhalanxTwoRotation = 0;
+					this.RingPhalanxThreeRotation = 0;
+
+					this.PinkyPhalanxOneRotation = 0;
+					this.PinkyPhalanxTwoRotation = 0;
+					this.PinkyPhalanxThreeRotation = 0;
+
+
+					this.ThumbPhalanxTwoRotation = 0;
+
+
+					this.ShowSkeleton = true;
+
+				}
+				var datg = new dat.GUI();
+				var indFolder = datg.addFolder('Index Finger');
+				var midFolder = datg.addFolder('Middle Finger');
+				var ringFolder = datg.addFolder('Ring Finger');
+				var pinkyFolder = datg.addFolder('Pinky Finger');
+				var thumbFolder = datg.addFolder('Thumb Finger');
+
+				datg.add(guiControls, 'ShowSkeleton');
+
+				indFolder.add(guiControls, 'IndexPhalanxOneRotation' , 0 , 45);
+				indFolder.add(guiControls, 'IndexPhalanxTwoRotation' , 0 , 60);
+				indFolder.add(guiControls, 'IndexPhalanxThreeRotation' , 0 , 60);
+
+				midFolder.add(guiControls, 'MiddlePhalanxOneRotation' , 0 , 45);
+				midFolder.add(guiControls, 'MiddlePhalanxTwoRotation' , 0 , 60);
+				midFolder.add(guiControls, 'MiddlePhalanxThreeRotation' , 0 , 60);
+
+				ringFolder.add(guiControls, 'RingPhalanxOneRotation' , 0 , 45);
+				ringFolder.add(guiControls, 'RingPhalanxTwoRotation' , 0 , 60);
+				ringFolder.add(guiControls, 'RingPhalanxThreeRotation' , 0 , 60);
+
+				pinkyFolder.add(guiControls, 'PinkyPhalanxOneRotation' , 0 , 45);
+				pinkyFolder.add(guiControls, 'PinkyPhalanxTwoRotation' , 0 , 60);
+				pinkyFolder.add(guiControls, 'PinkyPhalanxThreeRotation' , 0 , 60);
+
+				thumbFolder.add(guiControls, 'ThumbPhalanxTwoRotation' , 0 , 60);
+
+
+
+        var geometry = new THREE.CylinderGeometry( 10, 10, 75, 50, heightSegment, false );
+
+        var material = new THREE.MeshPhongMaterial( {
+					skinning : true,
+					color: 0xffad80
+				} );
+
+
+				var geometryArm = new THREE.BoxGeometry(90, 20 , 200);
+				var geometryPalm = new THREE.BoxGeometry(150 , 20 , 150);
+				var materialPalm = new THREE.MeshPhongMaterial({
+					color: 0xffcd94
+				});
+
+				palm = new THREE.Mesh(geometryPalm, materialPalm);
+				palm.rotation.x += Math.PI/2
+				scene.add(palm);
+
+				arm = new THREE.Mesh(geometryArm, materialPalm);
+				arm.rotation.x += Math.PI/2
+				arm.position.y -= 180;
+				scene.add(arm);
+
+
+
+
+        for( var i = 0; i < geometry.vertices.length; i++){
+          var vertex = geometry.vertices[i];
+          var z = (vertex.y + 10);
+
+          var skinIndex = Math.floor(z / heightSegment);
+          var skinWeight = ( z % heightSegment)  / heightSegment;
+
+          geometry.skinIndices.push( new THREE.Vector4( skinIndex, skinIndex + 1, 0, 0 ) );
+					geometry.skinWeights.push( new THREE.Vector4( 1 - skinWeight, skinWeight, 0, 0 ) );
+
+        }
+
+
+
+
+
+// INDEX-------------------------------------------------------
+        var rootBoneIndex = new THREE.Bone();
+        bonesIndex.push(rootBoneIndex);
+        rootBoneIndex.position.y = - 25;
+
+        for ( var i = 0 ; i < 3 ; i++) {
+
+          var bone = new THREE.Bone();
+          bone.position.y = heightSegment;
+          bonesIndex.push(bone);
+          rootBoneIndex.add(bone);
+          rootBoneIndex = bone;
+
+        }
+
+        index = new THREE.SkinnedMesh(geometry , material);
+        skeletonIndex = new THREE.Skeleton( bonesIndex);
+
+        index.add( bonesIndex[0]);
+        index.bind(skeletonIndex);
+
+        skeletonHelperIndex = new THREE.SkeletonHelper(index);
+        scene.add(skeletonHelperIndex);
+        scene.add(index);
+
+				index.position.y += 110;
+				index.position.x -= 60;
+// INDEX---------------------------------------------
+
+// Middle-------------------------------------------------------
+        var rootBoneMiddle = new THREE.Bone();
+        bonesMiddle.push(rootBoneMiddle);
+        rootBoneMiddle.position.y = - 25;
+
+        for ( var i = 0 ; i < 3 ; i++) {
+
+          var bone = new THREE.Bone();
+          bone.position.y = heightSegment;
+          bonesMiddle.push(bone);
+          rootBoneMiddle.add(bone);
+          rootBoneMiddle = bone;
+
+        }
+
+        middle = new THREE.SkinnedMesh(geometry , material);
+        skeletonMiddle = new THREE.Skeleton( bonesMiddle);
+
+        middle.add( bonesMiddle[0]);
+        middle.bind(skeletonMiddle);
+				console.log(bonesMiddle[3].position);
+        skeletonHelperMiddle = new THREE.SkeletonHelper(middle);
+        scene.add(skeletonHelperMiddle);
+        scene.add(middle);
+
+
+
+				middle.position.y += 110;
+				middle.position.x -= 20;
+// Middle---------------------------------------------
+
+// Ring-------------------------------------------------------
+        var rootBoneRing = new THREE.Bone();
+        bonesRing.push(rootBoneRing);
+        rootBoneRing.position.y = - 25;
+
+        for ( var i = 0 ; i < 3 ; i++) {
+
+          var bone = new THREE.Bone();
+          bone.position.y = heightSegment;
+          bonesRing.push(bone);
+          rootBoneRing.add(bone);
+          rootBoneRing = bone;
+
+        }
+
+        ring = new THREE.SkinnedMesh(geometry , material);
+        skeletonRing = new THREE.Skeleton( bonesRing);
+
+        ring.add( bonesRing[0]);
+        ring.bind(skeletonRing);
+
+        skeletonHelperRing = new THREE.SkeletonHelper(ring);
+        scene.add(skeletonHelperRing);
+				scene.add(ring);
+
+				ring.position.y += 110;
+				ring.position.x += 20;
+// Ring---------------------------------------------
+
+// Pinky-------------------------------------------------------
+        var rootBonePinky = new THREE.Bone();
+        bonesPinky.push(rootBonePinky);
+        rootBonePinky.position.y = - 25;
+
+        for ( var i = 0 ; i < 3 ; i++) {
+
+          var bone = new THREE.Bone();
+          bone.position.y = heightSegment;
+          bonesPinky.push(bone);
+          rootBonePinky.add(bone);
+          rootBonePinky = bone;
+
+        }
+
+        pinky = new THREE.SkinnedMesh(geometry , material);
+        skeletonPinky = new THREE.Skeleton( bonesPinky);
+
+        pinky.add( bonesPinky[0]);
+        pinky.bind(skeletonPinky);
+
+        skeletonHelperPinky = new THREE.SkeletonHelper(pinky);
+        scene.add(skeletonHelperPinky);
+				scene.add(pinky);
+
+
+				pinky.position.y += 110;
+				pinky.position.x += 60;
+// Pinky---------------------------------------------
+
+
+// Thumb-------------------------------------------------------
+        var rootBoneThumb = new THREE.Bone();
+        bonesThumb.push(rootBoneThumb);
+        rootBoneThumb.position.y = - 25;
+
+        for ( var i = 0 ; i < 3 ; i++) {
+
+          var bone = new THREE.Bone();
+          bone.position.y = heightSegment;
+          bonesThumb.push(bone);
+          rootBoneThumb.add(bone);
+          rootBoneThumb = bone;
+
+        }
+
+        thumb = new THREE.SkinnedMesh(geometry , material);
+        skeletonThumb = new THREE.Skeleton( bonesThumb);
+
+        thumb.add( bonesThumb[0]);
+        thumb.bind(skeletonThumb);
+
+        skeletonHelperThumb = new THREE.SkeletonHelper(thumb);
+        scene.add(skeletonHelperThumb);
+				scene.add(thumb);
+
+
+				thumb.position.x -= 80;
+				thumb.position.y += 10;
+				thumb.position.z += 20;
+
+				bonesThumb[0].rotation.z += Math.PI/4;
+				bonesThumb[1].rotation.z -= Math.PI/8;
+				bonesThumb[2].rotation.z -= Math.PI/16;
+
+				thumb.rotation.x += Math.PI/6
+
+
+
+
+// Thumb---------------------------------------------
+
+
+
+
+
+
+
+
+
+				renderer = new THREE.WebGLRenderer(({alpha: true}));
+				renderer.shadowMapEnabled = true;
+				renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				document.body.appendChild( renderer.domElement );
+
+        controls = new THREE.TrackballControls(camera , renderer.domElement);
+        controls.rotateSpeed = 3;
+        controls.dynamicDampingFactor = 0.1;
+        controls.addEventListener('change',render);
+
+
+				window.addEventListener( 'resize', onWindowResize, false );
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			function animate() {
+
+				bonesIndex[0].rotation.x = (Math.PI/3)*guiControls.IndexPhalanxOneRotation/45;
+				bonesIndex[1].rotation.x = (Math.PI/3)*guiControls.IndexPhalanxTwoRotation/60;
+				bonesIndex[2].rotation.x = (Math.PI/3)*guiControls.IndexPhalanxThreeRotation/60;
+
+
+				bonesMiddle[0].rotation.x = (Math.PI/3)*guiControls.MiddlePhalanxOneRotation/45;
+				bonesMiddle[1].rotation.x = (Math.PI/3)*guiControls.MiddlePhalanxTwoRotation/60;
+				bonesMiddle[2].rotation.x = (Math.PI/3)*guiControls.MiddlePhalanxThreeRotation/60;
+
+				bonesRing[0].rotation.x = (Math.PI/3)*guiControls.RingPhalanxOneRotation/45;
+				bonesRing[1].rotation.x = (Math.PI/3)*guiControls.RingPhalanxTwoRotation/60;
+				bonesRing[2].rotation.x = (Math.PI/3)*guiControls.RingPhalanxThreeRotation/60;
+
+				bonesPinky[0].rotation.x = (Math.PI/3)*guiControls.PinkyPhalanxOneRotation/45;
+				bonesPinky[1].rotation.x = (Math.PI/3)*guiControls.PinkyPhalanxTwoRotation/60;
+				bonesPinky[2].rotation.x = (Math.PI/3)*guiControls.PinkyPhalanxThreeRotation/60;
+
+				bonesThumb[0].rotation.y = (Math.PI/3);
+				bonesThumb[0].rotation.y = (Math.PI/3);
+
+				bonesThumb[1].rotation.y = -(Math.PI/3)*guiControls.ThumbPhalanxTwoRotation/90;
+				bonesThumb[1].rotation.z = -(Math.PI/3)*guiControls.ThumbPhalanxTwoRotation/90;
+
+				if(guiControls.ShowSkeleton==true){
+				showSkeleton(true);
+				}
+				else{
+					showSkeleton(false);
+				}
+
+				updateSkeletons();
+
+      requestAnimationFrame( animate );
+        controls.update();
+				render();
+
+			}
+
+      function render(){
+
+
+        renderer.render( scene, camera );
+
+
+      }
+
+			function updateSkeletons(){
+				skeletonHelperIndex.update();
+				skeletonHelperMiddle.update();
+				skeletonHelperRing.update();
+				skeletonHelperPinky.update();
+				skeletonHelperThumb.update();
+			}
+			function showSkeleton(bool){
+				skeletonHelperIndex.visible = bool;
+				skeletonHelperMiddle.visible = bool;
+				skeletonHelperRing.visible = bool;
+				skeletonHelperPinky.visible = bool;
+				skeletonHelperThumb.visible = bool;
+
+			}
+
+		</script>
+
+	</body>
+</html>

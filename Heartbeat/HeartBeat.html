@@ -1,0 +1,147 @@
+
+<html>
+<style>
+#b {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /*background: radial-gradient(circle,#456, #200);*/
+  background: #000 ;
+}
+</style><canvas id="b"><script>
+c=b.getContext('2d');
+//MAX = 96;
+radius = 5;
+sinusNum = 13;
+flag = 0;
+counter2 = 1;
+growing = true;
+shrinking = false;
+beep = false;
+
+onload = function update() {
+  //beep = false;
+  if (growing == true){
+    beep = true;
+    counter2 += 0.04;
+    if (counter2 > 1.2){
+      growing = false;
+      beep = true;
+      shrinking = true;
+    }
+  }else if (shrinking == true) {
+    beep = false;
+    counter2 -= 0.003;
+    if (counter2 < 0.95){
+      beep = true;
+      growing = true;
+      shrinking = false;
+    }
+  }
+  requestAnimationFrame(update);
+
+  //init
+  if (!window.time){
+    time = 0;
+    frame = 0;
+    timeNextFrame = 0;
+    // heart shape
+    hS = {x:20,y:-130,a:0,ai:0,w:10,p:[]};
+    // heart beat
+    hB ={x:-500,y:+150,a:0,ai:0.3,w:10,p:[]};
+  }
+  currentTime = performance.now() / 1000;
+  while(time < currentTime){
+    while(time < timeNextFrame){
+      time += 1 / 16384;
+    }
+    frame++;
+    timeNextFrame += 1/60;
+
+    // update.visuals
+    // --------- Heart Shape ------------
+    //Cardioid
+    //x = 16sin^3(t)
+    //y = 13cos(t) - 5cos(2t) - 2cos(3t) - cos(4t)
+
+    // dx =48sin^2(t)cos(t)
+    // dy = -13sin(t) + 10sin(2t)+6sin(3t)+4sin(4t)
+
+    dx = 48*Math.sin(hS.a)*Math.sin(hS.a)*Math.cos(hS.a);
+    dy = -13*Math.sin(hS.a) + 10*Math.sin(2*hS.a)+6*Math.sin(3*hS.a)+4*Math.sin(4*hS.a);
+
+    hS.x += dx/2;
+    hS.y += -dy/2;
+    hS.a += hS.ai;
+    hS.p.splice(0, hS.p.length - 170);
+
+    if (hS.p.length < 156){
+      hS.p.push({x:hS.x , y:hS.y , dx:dx, dy:dy});
+    }if (frame % 30 == 0){
+      hS.ai = 0.05 ;
+    }
+    // ----------- Heart Beat Line ---------------
+    // x linear
+    // y = sin/cos
+    if ( beep == true){
+      flag = 1;
+    }
+    dx = 1.6
+    dy2 = 4*Math.sin(2*hB.a);
+    if (flag ==1 && ( dy2 < 0.5)  && ( dy2 > -0.5)){
+      flag = 0;
+    }
+    dy3 = 0;
+    hB.x += dx;
+    if (flag == 1){
+      hB.y += dy2;
+    }else if(flag == 0){
+      hB.y += dy3;
+    }
+
+    hB.a += hB.ai;
+    hB.p.splice(0, hB.p.length - 100);
+    if(hB.x > 620){
+      hB.p.splice(0, hB.p.length);
+
+      hB.x = -500;
+      hB.y = 150;
+    }
+    hB.p.push({x:hB.x , y:hB.y , dx:dx, dy:dy});
+  }
+
+  // render vidual
+  H = b.height = 512;
+  W = b.width = 0 | H * innerWidth / innerHeight;
+  c.translate(W/2, H/2);
+  c.shadowBlur =24;
+  //c.strokeStyle = '#ff0000';
+  c.shadowColor =
+  c.strokeStyle = 'hsl('+ (counter2*15 )+', 100%, 50%)';
+  c.lineWidth = 9;
+  c.beginPath();
+  l=hS.p.length-1;
+  for(i=l;p=hS.p[i];i--){
+    c.lineTo(p.x *counter2 ,p.y* counter2);
+  }
+  c.closePath();
+  c.fillStyle= 'hsl('+ (counter2*15 )+', 100%, 50%)';
+  c.fill();
+
+  c.stroke();
+
+  c.strokeStyle = '#ff0000';
+  c.lineWidth = 6;
+  c.beginPath();
+  l=hB.p.length-1;
+  for(i=l;p=hB.p[i];i--){
+    amplifier = 1.1;
+    c.lineTo(p.x *amplifier ,p.y* amplifier);
+  }
+  c.stroke();
+
+}
+</script>
+</html>

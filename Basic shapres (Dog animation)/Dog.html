@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset=utf-8>
+		<title>Dog</title>
+		<style>
+			body { margin: 0}
+			canvas { width: 100%; height: 100% ; background-color: #b3f0ff}
+		</style>
+	</head>
+	<body>
+		<script src="threejs/three.js-master/build/three.js"></script>
+		<script src="dat.gui.min.js"></script>
+		<script src="threejs/three.js-master/examples/js/controls/TrackballControls.js"></script>
+		<script>
+
+			var camera, scene, renderer , light;
+			var controls , guiControls;
+			var materialNose , NoseTip;
+			init();
+			animate();
+
+
+
+
+			function init() {
+
+				renderer = new THREE.WebGLRenderer(({alpha: true}));
+				renderer.shadowMap.enabled = true;
+				renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				document.body.appendChild( renderer.domElement );
+
+				window.addEventListener( 'resize', onWindowResize, false );
+
+				camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 2000 );
+				camera.position.z = 100;
+
+				controls = new THREE.TrackballControls(camera , renderer.domElement);
+				controls.rotateSpeed = 3;
+				controls.dynamicDampingFactor = 0.1;
+		    controls.addEventListener('change',render);
+
+				scene = new THREE.Scene();
+
+				  guiControls = new function(){
+					this.lightPosX = 0;
+					this.lightPosY = 0;
+					this.lightPosZ = 0;
+					this.displayShadow = false;
+					this.noseColor = "#ffffff";
+				}
+				var datGUI = new dat.GUI();
+				datGUI.add(guiControls, 'lightPosX' , -100 , 200);
+				datGUI.add(guiControls, 'lightPosY' , 25 , 300);
+				datGUI.add(guiControls, 'lightPosZ' , -500 , 300);
+				datGUI.add(guiControls, 'displayShadow');
+				datGUI.addColor(guiControls, 'noseColor');
+
+
+				 var ambientLight = new THREE.AmbientLight(0xffffff , 0.3);
+        scene.add(ambientLight);
+
+			  light = new THREE.DirectionalLight(0xffffff , 1 );
+				light.position.set (0 , 0, 0 );
+				light.castShadow = true;
+
+
+				light.shadowCameraLeft = -1000;
+				light.shadowCameraRight = 1000;
+				light.shadowCameraTop = 1050;
+				light.shadowCameraBottom = -1000;
+
+				light.shadow.mapSize.width = 1024;
+				light.shadow.mapSize.height = 1024;
+				light.shadow.camera.near = 0.1;
+				light.shadow.camera.far = 700
+				scene.add(light);
+
+				var helper = new THREE.CameraHelper( light.shadow.camera );
+				//scene.add( helper );
+
+
+        var geometryFloor = new THREE.PlaneGeometry( 5000, 5000);
+        var materialFloor = new THREE.MeshPhongMaterial({color: 0x009933});
+        Floor = new THREE.Mesh( geometryFloor, materialFloor );
+        Floor.rotation.x -= Math.PI/2;
+        Floor.position.y -= 75;
+				Floor.receiveShadow = true;
+        scene.add(Floor);
+
+        var geometryChest = new THREE.BoxGeometry(60 , 50 , 50);
+				materialNose = new THREE.MeshPhongMaterial({color: guiControls.noseColor});
+        var materialChest = new THREE.MeshPhongMaterial({color: 0xe68a00});
+        Chest = new THREE.Mesh(geometryChest , materialChest);
+        Chest.position.z -= 100;
+        Chest.position.y += 10;
+        Chest.rotation.z -= Math.PI/10;
+				Chest.castShadow = true;
+				light.target = Chest;
+        scene.add(Chest);
+
+        var geometryLeg = new THREE.BoxGeometry(15 , 100 , 20);
+        var materialLeg = new THREE.MeshPhongMaterial({color: 0xcc7a00});
+        FrontLeftLeg = new THREE.Mesh(geometryLeg , materialLeg);
+        FrontLeftLeg.position.z -= 135;
+        FrontLeftLeg.position.y -= 25;
+        FrontLeftLeg.position.x += 23;
+				FrontLeftLeg.castShadow = true;
+        scene.add(FrontLeftLeg);
+
+        FrontRightLeg = new THREE.Mesh(geometryLeg , materialLeg);
+        FrontRightLeg.position.z -= 65;
+        FrontRightLeg.position.y -= 25;
+        FrontRightLeg.position.x += 23;
+				FrontRightLeg.castShadow = true;
+        scene.add(FrontRightLeg);
+
+        var geometryBody = new THREE.BoxGeometry(80 , 30 , 30);
+        var materialBody = new THREE.MeshPhongMaterial({color: 0xc0c0c0});
+
+        Body = new THREE.Mesh(geometryBody , materialBody);
+        Body.position.x -= 60;
+        Body.position.z -= 100;
+        Body.position.y += 10;
+        Body.rotation.z += Math.PI/40;
+				Body.castShadow = true;
+        scene.add(Body);
+
+
+
+        var geometryThigh = new THREE.BoxGeometry(20 , 40 , 20);
+        RightThigh = new THREE.Mesh(geometryThigh , materialLeg);
+        RightThigh.position.z -=75;
+        RightThigh.position.x -= 90;
+        RightThigh.rotation.z -= Math.PI/20;
+				RightThigh.castShadow = true;
+        scene.add(RightThigh);
+
+        RightThighTwo = new THREE.Mesh(geometryThigh , materialLeg);
+        RightThighTwo.position.z -=75;
+        RightThighTwo.position.x -= 105;
+        RightThighTwo.position.y -= 30;
+        RightThighTwo.rotation.z -= Math.PI/5;
+				RightThighTwo.castShadow = true;
+        scene.add(RightThighTwo);
+
+        LeftThigh = new THREE.Mesh(geometryThigh , materialLeg);
+        LeftThigh.position.z -=125;
+        LeftThigh.position.x -= 90;
+        LeftThigh.rotation.z -= Math.PI/20;
+				LeftThigh.castShadow = true;
+        scene.add(LeftThigh);
+
+        LeftThighTwo = new THREE.Mesh(geometryThigh , materialLeg);
+        LeftThighTwo.position.z -=125;
+        LeftThighTwo.position.x -= 105;
+        LeftThighTwo.position.y -= 30;
+        LeftThighTwo.rotation.z -= Math.PI/5;
+				LeftThighTwo.castShadow = true;
+        scene.add(LeftThighTwo);
+
+        var geometryShin = new THREE.BoxGeometry(18 , 30 , 20);
+        LeftShin = new THREE.Mesh(geometryShin , materialLeg);
+        LeftShin.position.z -= 125;
+        LeftShin.position.x -= 115;
+        LeftShin.position.y -= 60;
+				LeftShin.castShadow = true;
+        scene.add(LeftShin);
+
+        RightShin = new THREE.Mesh(geometryShin , materialLeg);
+        RightShin.position.z -= 75;
+        RightShin.position.x -= 115;
+        RightShin.position.y -= 60;
+				LeftShin.castShadow = true;
+        scene.add(RightShin);
+
+				var geometryPaw = new THREE.BoxGeometry(20 , 10 , 20);
+				FrontRightPaw = new THREE.Mesh(geometryPaw , materialBody);
+				FrontRightPaw.position.z -= 65;
+				FrontRightPaw.position.x += 40.5;
+				FrontRightPaw.position.y -= 70;
+				FrontRightPaw.castShadow = true;
+				scene.add(FrontRightPaw);
+
+				FrontLeftPaw = new THREE.Mesh(geometryPaw , materialBody);
+				FrontLeftPaw.position.z -= 135;
+				FrontLeftPaw.position.x += 40.5;
+				FrontLeftPaw.position.y -= 70;
+				FrontLeftPaw.castShadow = true;
+				scene.add(FrontLeftPaw);
+
+				BackRightPaw = new THREE.Mesh(geometryPaw , materialBody);
+				BackRightPaw.position.z -= 75;
+				BackRightPaw.position.x -= 96;
+				BackRightPaw.position.y -= 70;
+				BackRightPaw.castShadow = true;
+				scene.add(BackRightPaw);
+
+				BackLeftPaw = new THREE.Mesh(geometryPaw , materialBody);
+				BackLeftPaw.position.z -= 125;
+				BackLeftPaw.position.x -= 96;
+				BackLeftPaw.position.y -= 70;
+				BackLeftPaw.castShadow = true;
+				scene.add(BackLeftPaw);
+
+				var geometryNeck = new THREE.BoxGeometry(25 , 40 , 25);
+				Neck = new THREE.Mesh(geometryNeck , materialBody);
+				Neck.position.z -= 100;
+				Neck.position.y += 45;
+				Neck.position.x += 20;
+				Neck.rotation.z -= Math.PI / 10;
+				Neck.castShadow = true;
+				scene.add(Neck);
+
+				var geometryHead = new THREE.BoxGeometry(40 , 30 , 30);
+				Head = new THREE.Mesh(geometryHead , materialBody);
+				Head.position.z -= 100;
+				Head.position.y += 70;
+				Head.position.x += 25;
+				Head.castShadow = true;
+				scene.add(Head);
+
+
+
+				Nose = new THREE.Mesh(geometryHead, materialBody);
+				Nose.position.z -= 100;
+				Nose.position.y += 58;
+				Nose.position.x += 50;
+				Nose.rotation.z -= Math.PI /10;
+				Nose.castShadow = true;
+				scene.add(Nose);
+
+				var geometryEar = new THREE.BoxGeometry(9 , 30 , 20);
+				RightEar = new THREE.Mesh(geometryEar , materialChest);
+				RightEar.position.z -= 78.5;
+				RightEar.position.y += 71;
+				RightEar.position.x += 20;
+				RightEar.rotation.x -= Math.PI / 20;
+				RightEar.rotation.y -= Math.PI/2;
+				RightEar.castShadow = true;
+				scene.add(RightEar);
+
+				LeftEar = new THREE.Mesh(geometryEar , materialChest);
+				LeftEar.position.z -= 121.5;
+				LeftEar.position.y += 71;
+				LeftEar.position.x += 20;
+				LeftEar.rotation.x += Math.PI / 20;
+				LeftEar.rotation.y -= Math.PI/2;
+				LeftEar.castShadow = true;
+				scene.add(LeftEar);
+
+
+
+				var geometryNoseTip = new THREE.BoxGeometry(8 , 8 , 8);
+				NoseTip = new THREE.Mesh(geometryNoseTip , materialNose);
+				NoseTip.position.z -= 100;
+				NoseTip.position.y += 66;
+				NoseTip.position.x += 73;
+				NoseTip.rotation.z += Math.PI/4;
+				NoseTip.castShadow = true;
+				scene.add(NoseTip);
+
+
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			function animate() {
+				light.position.set (guiControls.lightPosX , guiControls.lightPosY + 25, guiControls.lightPosZ );
+				if(guiControls.displayShadow == true){
+					light.castShadow = true;
+				}
+				else if(guiControls.displayShadow == false){
+					light.castShadow = false;
+				}
+
+				NoseTip.material.color.set(guiControls.noseColor);
+
+				console.log("nose color" , NoseTip.material.color);
+				console.log("gui color" , guiControls.noseColor);
+				requestAnimationFrame( animate );
+				controls.update();
+        render();
+			}
+				function render(){
+
+					renderer.render(scene, camera);
+
+			}
+
+		</script>
+
+	</body>
+</html>

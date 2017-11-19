@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset=utf-8>
+		<title>Space Game</title>
+		<style>
+			body { margin: 0}
+			canvas { width: 100%; height: 100% ; background-image: url("textures/download/magellanic-clouds.png");}
+		</style>
+	</head>
+	<body>
+		<script src="threejs/three.js-master/build/three.js"></script>
+		<script>
+
+
+		container = document.createElement( 'div' );
+		document.body.appendChild( container );
+
+		var info = document.createElement( 'div' );
+		info.style.position = 'absolute';
+		info.style.top = '10px';
+		info.style.width = '100%';
+		info.style.color = "#fff";
+		info.style.textAlign = 'center';
+		info.innerHTML = 'Simple Dynamic 3D Text Example by <a href="http://www.lab4games.net/zz85/blog">zz85</a><br>Drag to spin the text';
+		container.appendChild( info );
+
+
+		var asteroids = [];
+		var player = {};
+		var score = 0;
+		var orbit = {};
+		var planet = {};
+		var scene = new THREE.Scene();
+		var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+
+		var RightKey =  false;
+		var LeftKey = false;
+		var UpKey = false;
+		var DownKey = false;
+
+		var ySpeed = 0;
+		var xSpeed = 0;
+
+
+		var renderer = new THREE.WebGLRenderer({alpha: true});
+		renderer.setSize( window.innerWidth, window.innerHeight );
+		document.body.appendChild( renderer.domElement );
+
+		var texture = new THREE.TextureLoader().load( 'textures/download/meteor1.png' );
+		var texturePlayer = new THREE.TextureLoader().load( 'textures/lava/lavatile.jpg' );
+		var texturePlanet = new THREE.TextureLoader().load( 'textures/planets/earth_atmos_4096.jpg');
+		var textureOrbit = new THREE.TextureLoader().load( 'textures/colors.png');
+		var geometry = new THREE.SphereGeometry( 0.15, 20, 23 );
+		var material = new THREE.MeshBasicMaterial( { map: texture } );
+		var materialPlayer = new THREE.MeshBasicMaterial( { map: texturePlayer } );
+		var materialPlanet = new THREE.MeshBasicMaterial( { map: texturePlanet } );
+		var materialOrbit = new THREE.MeshBasicMaterial( { map: textureOrbit } );
+
+
+		// load a texture, set wrap mode to repeat
+		var textureScore = new THREE.TextureLoader().load( "textures/water.jpg" );
+		textureScore.wrapS = THREE.RepeatWrapping;
+		textureScore.wrapT = THREE.RepeatWrapping;
+		textureScore.repeat.set( 4, 4 );
+
+		createAsteroids(scene , texture , geometry , material);
+		createPlayer(scene , texturePlayer , materialPlayer);
+		createPlanet(scene , texturePlanet , materialPlanet);
+		createOrbit(scene , textureOrbit , materialOrbit);
+		console.log(scene.width);
+		camera.position.z = 5;
+
+		document.addEventListener( 'keydown' , onDownKey , false);
+		document.addEventListener( 'keyup' , onUpKey , false);
+
+		function onDownKey( event ){
+			switch ( event.keyCode){
+				case 83: //s
+				DownKey = true;
+				break;
+
+				case 65: // a
+				LeftKey = true;
+				break;
+
+				case 87: // w
+				UpKey = true;
+				break;
+
+				case 68: // d
+				RightKey = true;
+				break;
+
+			}
+
+		}
+
+		function onUpKey( event ){
+			switch ( event.keyCode){
+				case 83: //x
+				DownKey = false;
+				ySpeed = 0;
+				break;
+				case 65: // a
+				LeftKey = false;
+				xSpeed = 0;
+				break;
+
+				case 87: // w
+				UpKey = false;
+				ySpeed = 0;
+				break;
+
+				case 68: // d
+				RightKey = false;
+				xSpeed = 0;
+				break;
+
+			}
+
+		}
+
+
+		function distanceCalculator(asteroid , player){
+			// distance between player center and asteroid center
+			// is smaller than the sum of their radius
+			// sqrt( (x2 - x1)^2 + (y2 - y1)^2 + (z2 - z1)^2 )
+	var distance =Math.sqrt( (Math.pow((asteroid.cube.position.x - player.cube.position.x) , 2) )
+							+(Math.pow((asteroid.cube.position.y - player.cube.position.y) , 2) )
+							+(Math.pow((asteroid.cube.position.z - player.cube.position.z) , 2) ));
+
+							return distance;
+
+		}
+
+
+		function collisionDetector(asteroid){
+			if(distanceCalculator(asteroid , player) < (0.15 + 0.05)){
+				score = 0;
+				asteroid.cube.position.z = getRandomInt(10000 , 25000 , true)*-1;
+				asteroid.cube.position.y = getRandomInt(0 , 1000, false );
+				asteroid.cube.position.x = getRandomInt(0 ,1000 , false);
+				console.log("score" , score);
+			}
+		}
+		function collisionDetectorOrbit(){
+			if(distanceCalculator(orbit , player) < (0.025 + 0.05)){
+				score += 1;
+				orbit.cube.position.x = getRandomInt(0 , 200 , false );
+				orbit.cube.position.y = getRandomInt(0 , 100 , false );
+				orbit.cube.position.z = -15;
+				console.log("score" , score);
+
+			}
+		}
+
+		function createOrbit(scene , texture, material){
+		var geometry = new THREE.SphereGeometry( 0.025, 100, 100 );
+		var cube = new THREE.Mesh( geometry, material );
+		orbit.x = getRandomInt(0 , 200 , false );
+		orbit.y = getRandomInt(0 , 100 , false );
+		orbit.z = -15;
+		orbit.cube = cube;
+
+		orbit.cube.position.x = orbit.x;
+		orbit.cube.position.y = orbit.y;
+		orbit.cube.position.z  = orbit.z;
+
+
+
+		scene.add( orbit.cube );
+		}
+		function createPlanet(scene , texture, material){
+		var geometry = new THREE.SphereGeometry( 25, 100, 100 );
+		var cube = new THREE.Mesh( geometry, material );
+		planet.x = 0;
+		planet.y = -28;
+		planet.z = -10;
+		planet.cube = cube;
+
+		planet.cube.position.x = planet.x;
+		planet.cube.position.y = planet.y;
+		planet.cube.position.z  = planet.z;
+
+
+
+		scene.add( planet.cube );
+		}
+		function createPlayer(scene , texture, material){
+		var geometry = new THREE.SphereGeometry( 0.05, 23, 23 );
+		var cube = new THREE.Mesh( geometry, material );
+		player.x = 0;
+		player.y = -0.2;
+		player.z = 4.62;
+		player.cube = cube;
+
+		player.cube.position.x = player.x;
+		player.cube.position.y = player.y;
+		player.cube.position.z  = player.z;
+
+
+
+		scene.add( player.cube );
+		}
+		function createAsteroids(scene , texture , geometry , material){
+
+			for (var i = 0 ;  i <25 ; i++){
+			var cube = new THREE.Mesh( geometry, material );
+			cube.position.x = getRandomInt(0 , 1000 , false );
+			cube.position.y = getRandomInt(0 , 1000 , false);
+			cube.position.z = getRandomInt(10000 , 25000 , true)*-1;
+			asteroids.push({cube : cube , x:getRandomInt(0.4 , 3 , false ) , y:getRandomInt(0.4 ,2 , false) , z :getRandomInt(5 , 10 , true)  });
+
+			scene.add( cube );
+			}
+		}
+
+		function getRandomInt(min, max , neg) {
+
+	  if(Math.random() < 0.5  && !neg){
+	   return -((Math.random() * (max - min)) + min)/1000;
+	  }else{
+	   return ((Math.random() * (max - min)) + min)/1000;
+	  }
+
+
+	  }
+
+		function update(){
+
+
+			asteroids.forEach(function(asteroid){
+
+			if(asteroid.cube.position.z > 5){
+				asteroid.cube.position.z = getRandomInt(10000 , 25000 , true)*-1;
+				asteroid.cube.position.y = getRandomInt(0 , 1000, false );
+				asteroid.cube.position.x = getRandomInt(0 ,1000 , false);
+			}
+
+			});
+
+			if(orbit.cube.position.z > 5.2){
+				orbit.cube.position.x = getRandomInt(0 , 200 , false );
+				orbit.cube.position.y = getRandomInt(0 , 100 , false );
+				orbit.cube.position.z = -10;
+			}
+
+		}
+
+
+		function render() {
+			update();
+			info.innerHTML = "Score: " + score;
+	requestAnimationFrame( render );
+	renderer.render( scene, camera );
+
+	asteroids.forEach(function(asteroid){
+		collisionDetector(asteroid);
+		asteroid.cube.position.z += (score*0.5 + 7.5)*asteroid.z;
+		asteroid.cube.position.x += 0.12*asteroid.x;
+		asteroid.cube.position.y += 0.2*asteroid.y;
+
+		asteroid.cube.rotation.x += asteroid.x;
+		asteroid.cube.rotation.y += asteroid.y;
+		asteroid.cube.rotation.z += asteroid.z;
+	}
+	);
+	collisionDetectorOrbit();
+
+	orbit.cube.position.z += 0.025;
+
+			if( (UpKey ==true) &&  (player.cube.position.y + 0.02 < 0.25)){
+				if(ySpeed <= 0.015){
+					ySpeed += 0.002;
+				}
+				player.cube.position.y += ySpeed ;
+				//camera.rotation.x -= 0.001; <-- Failed attempt to make movement look cool
+			}
+			if( (DownKey ==true) &&  (player.cube.position.y - 0.02 > - 0.23)) {
+				if(ySpeed <= 0.015){
+					ySpeed += 0.002;
+				}
+				player.cube.position.y -= ySpeed;
+				//camera.rotation.x += 0.001;
+			}
+			if( (RightKey ==true)  &&  (player.cube.position.x + 0.02 < 0.4)){
+				if(xSpeed <= 0.015){
+					xSpeed += 0.002;
+				}
+				player.cube.position.x += xSpeed;
+				//camera.rotation.y -= 0.001;
+			}
+			if( (LeftKey ==true)  &&  (player.cube.position.x - 0.02 > -0.40)){
+				if(xSpeed <= 0.015){
+					xSpeed += 0.002;
+				}
+				player.cube.position.x -= xSpeed;
+				//camera.rotation.y += 0.001;
+			}
+
+			planet.cube.rotation.x += 0.0005
+}
+render();
+
+
+
+
+		</script>
+	</body>
+</html>
