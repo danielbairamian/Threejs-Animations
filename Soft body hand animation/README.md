@@ -2,4 +2,4 @@
 
 Step up from the Rigid body hand animation, where the hand now is an actual 3D mesh , the bone structure has been created with the help of Blender. Once exported to threejs using the custom blender to threejs converter, the animation is the same as for the rigid hand.
 
-![](https://github.com/danielbairamian/Threejs-Animations/blob/master/GifsAndSS/Dog.png)
+![](https://github.com/danielbairamian/Threejs-Animations/blob/master/GifsAndSS/Soft.png)
